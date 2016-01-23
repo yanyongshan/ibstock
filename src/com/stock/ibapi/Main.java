@@ -16,8 +16,8 @@ public class Main {
     private static ApiController apiController;
 
     public static void main(String[] args) {
-        String stockName = "uvxy";
-        File outfile = new File("h://" + stockName + ".csv");
+        String stockName = "spy";
+        File outfile = new File("/Users/yongshanyan/Downloads/" + stockName + ".csv");
         FileOutputStream fileOutputStream = null;
         try {
             System.out.println(END_DATE_FMT.format(new Date(System.currentTimeMillis() - 24 * 3600 * 1000)));
