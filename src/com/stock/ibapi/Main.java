@@ -9,6 +9,7 @@ import com.ib.controller.Types;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 public class Main {
@@ -16,15 +17,22 @@ public class Main {
     private static ApiController apiController;
 
     public static void main(String[] args) {
-        String stockName = "spy";
-        File outfile = new File("/Users/yongshanyan/Downloads/" + stockName + ".csv");
+        ArrayList<String> stockList = new ArrayList<>();
+        stockList.add("upro");
+        stockList.add("dia");
+        stockList.add("udow");
+        stockList.add("qqq");
+        stockList.add("tqqq");
         FileOutputStream fileOutputStream = null;
         try {
-            System.out.println(END_DATE_FMT.format(new Date(System.currentTimeMillis() - 24 * 3600 * 1000)));
-            apiController = new ApiController(new ConnectionHandler(), new InLogger(), new OutLogger());
-            apiController.connect("127.0.0.1", 7496, 1);
-            fileOutputStream = new FileOutputStream(outfile);
-            getHistoricalByDay(stockName, 360, fileOutputStream);
+            for (String stockName : stockList) {
+                File outfile = new File("D://Download/stock/" + stockName + ".csv");
+                System.out.println(END_DATE_FMT.format(new Date(System.currentTimeMillis() - 24 * 3600 * 1000)));
+                apiController = new ApiController(new ConnectionHandler(), new InLogger(), new OutLogger());
+                apiController.connect("127.0.0.1", 7496, 1);
+                fileOutputStream = new FileOutputStream(outfile);
+                getHistoricalByDay(stockName, 360, fileOutputStream);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -68,7 +76,7 @@ public class Main {
     public static void getHistoricalData(final String symbol, long endTime, final FileOutputStream outputStream) {
         StkContract stkContract = new StkContract(symbol);
         NewContract newContract = new NewContract(stkContract);
-        String endDateTime = END_DATE_FMT.format(new Date(endTime));
+        final String endDateTime = END_DATE_FMT.format(new Date(endTime));
         apiController.reqHistoricalData(newContract, endDateTime, 1, Types.DurationUnit.DAY, Types.BarSize._1_min, Types.WhatToShow.TRADES, false, new ApiController.IHistoricalDataHandler() {
             @Override
             public void historicalData(Bar bar, boolean hasGaps) {
