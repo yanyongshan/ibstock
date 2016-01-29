@@ -8,33 +8,49 @@ import com.ib.controller.Types;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 
 public class Main {
     public static SimpleDateFormat END_DATE_FMT = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
     private static ApiController apiController;
+    //股票名称
+    public static String stockName;
+    //保存的文件路径
+    public static String savePath;
+    //客户端IP
+    public static String clientIp;
+    //客户端端口
+    public static int port;
+    //开始时间
+    public static String startTime;
+    //结束时间
+    public static String endTime;
+    //每次请求间隔默认15秒
+    public static int sleepTime = 15 * 1000;
 
     public static void main(String[] args) {
-        ArrayList<String> stockList = new ArrayList<>();
-        stockList.add("upro");
-        stockList.add("dia");
-        stockList.add("udow");
-        stockList.add("qqq");
-        stockList.add("tqqq");
         FileOutputStream fileOutputStream = null;
         try {
-            for (String stockName : stockList) {
-                File outfile = new File("D://Download/stock/" + stockName + ".csv");
-                System.out.println(END_DATE_FMT.format(new Date(System.currentTimeMillis() - 24 * 3600 * 1000)));
-                apiController = new ApiController(new ConnectionHandler(), new InLogger(), new OutLogger());
-                apiController.connect("127.0.0.1", 7496, 1);
-                fileOutputStream = new FileOutputStream(outfile);
-                getHistoricalByDay(stockName, 360, fileOutputStream);
+            checkArguments(args);
+            //创建目录
+            File path = new File(savePath);
+            if (!path.isDirectory()) {
+                boolean mkdirPath = path.mkdirs();
+                if (!mkdirPath) {
+                    throw new IOException("创建目录失败，目录路径：" + savePath);
+                }
             }
+            File outfile = new File(savePath + "/" + stockName + ".csv");
+            System.out.println(END_DATE_FMT.format(new Date(System.currentTimeMillis() - 24 * 3600 * 1000)));
+            apiController = new ApiController(new ConnectionHandler(), new InLogger(), new OutLogger());
+            apiController.connect(clientIp, port, 1);
+            fileOutputStream = new FileOutputStream(outfile);
+            getHistoricalByDay(stockName, 360, fileOutputStream);
         } catch (Exception e) {
             e.printStackTrace();
+            System.out.println("run error:" + e.getMessage());
         } finally {
             if (fileOutputStream != null) {
                 try {
@@ -45,6 +61,35 @@ public class Main {
             }
         }
         System.exit(0);
+    }
+
+    /***
+     * 初始化检查参数列表
+     *
+     * @param args 参数列表
+     */
+    public static void checkArguments(String[] args) {
+        Arguments arguments = new Arguments(args);
+        stockName = arguments.getString("strockName");
+        if (stockName == null) {
+            throw new IllegalArgumentException("参数错误：要求参数-strockName必填");
+        }
+        savePath = arguments.getString("savePath");
+        if (savePath == null) {
+            throw new IllegalArgumentException("参数错误：要求参数-savePath必填");
+        }
+        clientIp = arguments.getString("clientIp", "127.0.0.1");
+        port = arguments.getInteger("port", 7496);
+        startTime = arguments.getString("startTime");
+        if (startTime == null) {
+            throw new IllegalArgumentException("参数错误：要求参数-startTime必填");
+        }
+        endTime = arguments.getString("endTime");
+        if (endTime == null) {
+            throw new IllegalArgumentException("参数错误：要求参数-endTime必填");
+        }
+        //每次请求间隔默认15秒
+        sleepTime = arguments.getInteger("sleepTime", 15 * 1000);
     }
 
     /***
