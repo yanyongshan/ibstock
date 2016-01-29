@@ -5,6 +5,7 @@ import com.ib.controller.ApiController;
 import com.ib.controller.Bar;
 import com.ib.controller.NewContract;
 import com.ib.controller.Types;
+import org.apache.commons.cli.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,7 +34,7 @@ public class Main {
     public static void main(String[] args) {
         FileOutputStream fileOutputStream = null;
         try {
-            checkArguments(args);
+            initArguments(args);
             //创建目录
             File path = new File(savePath);
             if (!path.isDirectory()) {
@@ -67,29 +68,37 @@ public class Main {
      * 初始化检查参数列表
      *
      * @param args 参数列表
+     * @see {http://commons.apache.org/proper/commons-cli/apidocs/index.html}
      */
-    public static void checkArguments(String[] args) {
-        Arguments arguments = new Arguments(args);
-        stockName = arguments.getString("strockName");
-        if (stockName == null) {
-            throw new IllegalArgumentException("参数错误：要求参数-strockName必填");
+    public static void initArguments(String[] args) {
+        Options opts = new Options();
+        opts.addOption("s", "stock", true, "需要查询的股票代码，如BABA");
+        opts.addOption("o", "output", true, "文件输出目录");
+        opts.addOption("f", "filename", false, "保存的文件名");
+        opts.addOption("i", "host", false, "IB客户端ip，默认为127.0.0.1");
+        opts.addOption("p", "port", false, "IB客户端端口号，默认为7496");
+        opts.addOption("n", "num", true, "查询的单元数量,默认为1");
+        opts.addOption("b", "btime", true, "查询结束时间");
+        opts.addOption("e", "etime", true, "查询结束时间");
+        opts.addOption("w", "wait", false, "查询请求间隔时间，默认为15秒");
+        opts.addOption("u", "unit", false, "查询单元，默认为天");
+        String formatstr = "java -jar ibstock.jar [-s/--stock] [-o/--output] [-b/--btime] [-e/--etime]";
+
+        HelpFormatter formatter = new HelpFormatter();
+        CommandLineParser parser = new DefaultParser();
+        try {
+            // 处理Options和参数
+            CommandLine commandLine = parser.parse(opts, args);
+            if (commandLine.hasOption("h")) {
+                formatter.printHelp("参数列表", opts);
+            }else{
+                stockName=commandLine.getOptionValue("s");
+                savePath=commandLine.getOptionValue("o");
+            }
+        } catch (ParseException e) {
+            // 如果发生异常，则打印出帮助信息
+            formatter.printHelp(formatstr, opts);
         }
-        savePath = arguments.getString("savePath");
-        if (savePath == null) {
-            throw new IllegalArgumentException("参数错误：要求参数-savePath必填");
-        }
-        clientIp = arguments.getString("clientIp", "127.0.0.1");
-        port = arguments.getInteger("port", 7496);
-        startTime = arguments.getString("startTime");
-        if (startTime == null) {
-            throw new IllegalArgumentException("参数错误：要求参数-startTime必填");
-        }
-        endTime = arguments.getString("endTime");
-        if (endTime == null) {
-            throw new IllegalArgumentException("参数错误：要求参数-endTime必填");
-        }
-        //每次请求间隔默认15秒
-        sleepTime = arguments.getInteger("sleepTime", 15 * 1000);
     }
 
     /***
