@@ -50,7 +50,7 @@ public class Main {
             fileOutputStream = new FileOutputStream(outfile);
             getHistoricalByDay(stockName, 360, fileOutputStream);
         } catch (Exception e) {
-            System.out.println("运行错误:" + e.getMessage());
+            System.out.println("run exception msg="+e.getMessage());
         } finally {
             if (fileOutputStream != null) {
                 try {
@@ -69,18 +69,18 @@ public class Main {
      * @param args 参数列表
      * @see {http://commons.apache.org/proper/commons-cli/apidocs/index.html}
      */
-    public static void initArguments(String[] args) throws ParseException{
+    public static void initArguments(String[] args) throws ParseException {
         Options opts = new Options();
-        opts.addOption(Option.builder().argName("s").longOpt("stock").hasArg(true).longOpt("需要查询的股票代码，如BABA").required(true).build());
-        opts.addOption(Option.builder().argName("o").longOpt("output").hasArg(true).longOpt("文件输出目录").required(true).build());
-        opts.addOption(Option.builder().argName("f").longOpt("filename").hasArg(true).longOpt("保存的文件名,默认为股票名.csv").required(false).build());
-        opts.addOption(Option.builder().argName("i").longOpt("host").hasArg(true).longOpt("IB客户端ip，默认为127.0.0.1").required(false).build());
-        opts.addOption(Option.builder().argName("p").longOpt("port").hasArg(true).longOpt("IB客户端端口号，默认为7496").required(false).build());
-        opts.addOption(Option.builder().argName("n").longOpt("num").hasArg(true).longOpt("查询的单元数量,默认为1").required(false).build());
-        opts.addOption(Option.builder().argName("b").longOpt("btime").hasArg(true).longOpt("查询开始时间").required(true).build());
-        opts.addOption(Option.builder().argName("e").longOpt("etime").hasArg(true).longOpt("查询结束时间").required(true).build());
-        opts.addOption(Option.builder().argName("w").longOpt("wait").hasArg(true).longOpt("查询请求间隔时间，默认为15秒").required(false).build());
-        opts.addOption(Option.builder().argName("u").longOpt("unit").hasArg(true).longOpt("查询单元，默认为天").required(false).build());
+        opts.addOption(Option.builder("s").longOpt("stock").hasArg(true).desc("需要查询的股票代码，如BABA").required(true).build());
+        opts.addOption(Option.builder("o").longOpt("output").hasArg(true).desc("文件输出目录").required(true).build());
+        opts.addOption(Option.builder("f").longOpt("filename").hasArg(true).desc("保存的文件名,默认为:股票名.csv").required(false).build());
+        opts.addOption(Option.builder("i").longOpt("host").hasArg(true).desc("IB客户端ip，默认为:127.0.0.1").required(false).build());
+        opts.addOption(Option.builder("p").longOpt("port").hasArg(true).desc("IB客户端端口号，默认为:7496").required(false).build());
+        opts.addOption(Option.builder("n").longOpt("num").hasArg(true).desc("查询的单元数量,默认为:1").required(false).build());
+        opts.addOption(Option.builder("b").longOpt("btime").hasArg(true).desc("查询开始时间").required(true).build());
+        opts.addOption(Option.builder("e").longOpt("etime").hasArg(true).desc("查询结束时间").required(true).build());
+        opts.addOption(Option.builder("w").longOpt("wait").hasArg(true).desc("查询请求间隔时间，默认为15秒").required(false).build());
+        opts.addOption(Option.builder("u").longOpt("unit").hasArg(true).desc("查询单元，默认为天").required(false).build());
         String formatstr = "java -jar ibstock.jar [-s/--stock] [-o/--output] [-b/--btime] [-e/--etime]";
 
         HelpFormatter formatter = new HelpFormatter();
