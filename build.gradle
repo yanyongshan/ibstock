@@ -3,7 +3,6 @@ import com.sun.org.apache.xalan.internal.xsltc.cmdline.Compile
 apply plugin: 'java'
 apply plugin: 'application'
 mainClassName = 'com.stock.ibapi.Main'
-
 repositories {
     mavenLocal()
     mavenCentral()

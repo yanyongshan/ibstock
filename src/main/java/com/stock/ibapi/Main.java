@@ -50,8 +50,7 @@ public class Main {
             fileOutputStream = new FileOutputStream(outfile);
             getHistoricalByDay(stockName, 360, fileOutputStream);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("run error:" + e.getMessage());
+            System.out.println("运行错误:" + e.getMessage());
         } finally {
             if (fileOutputStream != null) {
                 try {
@@ -70,34 +69,35 @@ public class Main {
      * @param args 参数列表
      * @see {http://commons.apache.org/proper/commons-cli/apidocs/index.html}
      */
-    public static void initArguments(String[] args) {
+    public static void initArguments(String[] args) throws ParseException{
         Options opts = new Options();
-        opts.addOption("s", "stock", true, "需要查询的股票代码，如BABA");
-        opts.addOption("o", "output", true, "文件输出目录");
-        opts.addOption("f", "filename", false, "保存的文件名");
-        opts.addOption("i", "host", false, "IB客户端ip，默认为127.0.0.1");
-        opts.addOption("p", "port", false, "IB客户端端口号，默认为7496");
-        opts.addOption("n", "num", true, "查询的单元数量,默认为1");
-        opts.addOption("b", "btime", true, "查询结束时间");
-        opts.addOption("e", "etime", true, "查询结束时间");
-        opts.addOption("w", "wait", false, "查询请求间隔时间，默认为15秒");
-        opts.addOption("u", "unit", false, "查询单元，默认为天");
+        opts.addOption(Option.builder().argName("s").longOpt("stock").hasArg(true).longOpt("需要查询的股票代码，如BABA").required(true).build());
+        opts.addOption(Option.builder().argName("o").longOpt("output").hasArg(true).longOpt("文件输出目录").required(true).build());
+        opts.addOption(Option.builder().argName("f").longOpt("filename").hasArg(true).longOpt("保存的文件名,默认为股票名.csv").required(false).build());
+        opts.addOption(Option.builder().argName("i").longOpt("host").hasArg(true).longOpt("IB客户端ip，默认为127.0.0.1").required(false).build());
+        opts.addOption(Option.builder().argName("p").longOpt("port").hasArg(true).longOpt("IB客户端端口号，默认为7496").required(false).build());
+        opts.addOption(Option.builder().argName("n").longOpt("num").hasArg(true).longOpt("查询的单元数量,默认为1").required(false).build());
+        opts.addOption(Option.builder().argName("b").longOpt("btime").hasArg(true).longOpt("查询开始时间").required(true).build());
+        opts.addOption(Option.builder().argName("e").longOpt("etime").hasArg(true).longOpt("查询结束时间").required(true).build());
+        opts.addOption(Option.builder().argName("w").longOpt("wait").hasArg(true).longOpt("查询请求间隔时间，默认为15秒").required(false).build());
+        opts.addOption(Option.builder().argName("u").longOpt("unit").hasArg(true).longOpt("查询单元，默认为天").required(false).build());
         String formatstr = "java -jar ibstock.jar [-s/--stock] [-o/--output] [-b/--btime] [-e/--etime]";
 
         HelpFormatter formatter = new HelpFormatter();
-        CommandLineParser parser = new DefaultParser();
+        DefaultParser parser = new DefaultParser();
         try {
             // 处理Options和参数
-            CommandLine commandLine = parser.parse(opts, args);
+            CommandLine commandLine = parser.parse(opts, args, true);
             if (commandLine.hasOption("h")) {
                 formatter.printHelp("参数列表", opts);
-            }else{
-                stockName=commandLine.getOptionValue("s");
-                savePath=commandLine.getOptionValue("o");
+            } else {
+                stockName = commandLine.getOptionValue("s");
+                savePath = commandLine.getOptionValue("o");
             }
         } catch (ParseException e) {
             // 如果发生异常，则打印出帮助信息
             formatter.printHelp(formatstr, opts);
+            throw e;
         }
     }
 
