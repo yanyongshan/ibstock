@@ -113,8 +113,8 @@ public class Main {
         opts.addOption(Option.builder("o").longOpt("output").hasArg(true).desc("output file path").required(true).build());
         opts.addOption(Option.builder("i").longOpt("host").hasArg(true).desc("IB client host,default:127.0.0.1").required(false).build());
         opts.addOption(Option.builder("p").longOpt("port").hasArg(true).desc("IB client port,default:7496").required(false).build());
-        opts.addOption(Option.builder("b").longOpt("btime").hasArg(true).desc("request begin time").required(true).build());
-        opts.addOption(Option.builder("e").longOpt("etime").hasArg(true).desc("request end time,example:'20150105 23:59:59'").required(true).build());
+        opts.addOption(Option.builder("b").longOpt("btime").hasArg(true).desc("request begin time，example:'20150105'").required(true).build());
+        opts.addOption(Option.builder("e").longOpt("etime").hasArg(true).desc("request end time,example:'20150115'").required(true).build());
         opts.addOption(Option.builder("w").longOpt("wait").hasArg(true).desc("request sleep time by second,default:15").required(false).build());
         opts.addOption(Option.builder("u").longOpt("unit").hasArg(true).desc("request bar size,only accept 1m,2m,3m,5m,10m,15m,20m,30m,1h,4h,1d,1w").required(false).build());
         String formatstr = "java -jar ibstock.jar [-s/--stock] [-o/--output] [-b/--btime] [-e/--etime]";
@@ -131,8 +131,8 @@ public class Main {
                 savePath = commandLine.getOptionValue("o");
                 ibClientIp = commandLine.getOptionValue("i", "127.0.0.1");
                 port = Integer.valueOf(commandLine.getOptionValue("p", "7496"));
-                beginTimeStr = commandLine.getOptionValue("b");
-                endTimeStr = commandLine.getOptionValue("e");
+                beginTimeStr = commandLine.getOptionValue("b")+" 12:00:00";
+                endTimeStr = commandLine.getOptionValue("e")+" 12:00:00";
                 sleepTime = Integer.valueOf(commandLine.getOptionValue("w", "15")) * 1000;
                 String unit = commandLine.getOptionValue("u", "1m");
                 parseStockUnit(unit);
