@@ -66,15 +66,16 @@ public class Main {
                     }
                     stockBarMap.clear();
                     stockBarList.clear();
-                    long endTimeStamp = DATE_FMT.parse(endTimeStr).getTime();
                     long beginTimeStamp = DATE_FMT.parse(beginTimeStr).getTime();
-                    fileWriter = new FileWriter(outfile);
+                    long endTimeStamp = DATE_FMT.parse(endTimeStr).getTime();
+                    long maxTimeStamp = System.currentTimeMillis();
                     while (beginTimeStamp < endTimeStamp) {
                         getHistoricalData(stock, beginTimeStamp);
                         beginTimeStamp += step;
                         Thread.sleep(sleepTime);
                     }
                     //输出到文件中
+                    fileWriter = new FileWriter(outfile);
                     for (String barStr : stockBarList) {
                         fileWriter.write(barStr);
                     }
@@ -131,8 +132,8 @@ public class Main {
                 savePath = commandLine.getOptionValue("o");
                 ibClientIp = commandLine.getOptionValue("i", "127.0.0.1");
                 port = Integer.valueOf(commandLine.getOptionValue("p", "7496"));
-                beginTimeStr = commandLine.getOptionValue("b")+" 12:00:00";
-                endTimeStr = commandLine.getOptionValue("e")+" 12:00:00";
+                beginTimeStr = commandLine.getOptionValue("b") + " 12:00:00";
+                endTimeStr = commandLine.getOptionValue("e") + " 12:00:00";
                 sleepTime = Integer.valueOf(commandLine.getOptionValue("w", "15")) * 1000;
                 String unit = commandLine.getOptionValue("u", "1m");
                 parseStockUnit(unit);
@@ -222,14 +223,14 @@ public class Main {
                 barSize = Types.BarSize._4_hours;
                 break;
             case "1d":
-                //每次请求365天数据，最多每次1440个K线
+                //每次请求365天数据，最多每次365个K线
                 duration = 365;
                 step = duration * 24 * 60 * 60 * 1000;
                 durationUnit = Types.DurationUnit.DAY;
                 barSize = Types.BarSize._1_day;
                 break;
             case "1w":
-                //每次请求500周数据，最多每次1440个K线
+                //每次请求500周数据，最多每次500个K线
                 duration = 500;
                 step = duration * 7 * 24 * 60 * 60 * 1000;
                 durationUnit = Types.DurationUnit.WEEK;
@@ -267,7 +268,7 @@ public class Main {
                 sb.append("," + bar.low());
                 sb.append("," + bar.open());
                 sb.append("," + bar.close());
-                sb.append("," + bar.volume());
+                sb.append("," + bar.volume() * 100);
                 sb.append("," + bar.count());
                 sb.append("," + bar.wap());
                 sb.append("\n");
