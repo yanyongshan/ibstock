@@ -7,54 +7,87 @@ import com.ib.controller.NewContract;
 import com.ib.controller.Types;
 import org.apache.commons.cli.*;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Main {
-    public static SimpleDateFormat END_DATE_FMT = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+    public static SimpleDateFormat DATE_FMT = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
     private static ApiController apiController;
     //股票名称
     public static String stockName;
     //保存的文件路径
     public static String savePath;
     //客户端IP
-    public static String clientIp;
+    public static String ibClientIp;
     //客户端端口
     public static int port;
     //开始时间
-    public static String startTime;
+    public static String beginTimeStr;
     //结束时间
-    public static String endTime;
+    public static String endTimeStr;
+    //请求步长（以秒为单位）
+    public static long step = 1;
     //每次请求间隔默认15秒
     public static int sleepTime = 15 * 1000;
+    //请求间距长度
+    public static int duration = 1;
+    //请求间距单位
+    public static Types.DurationUnit durationUnit;
+    //K线bar大小
+    public static Types.BarSize barSize;
+    //
+    public static HashMap<String, String> stockBarMap = new HashMap<>();
 
     public static void main(String[] args) {
-        FileOutputStream fileOutputStream = null;
+        FileWriter fileWriter = null;
         try {
             initArguments(args);
-            //创建目录
-            File path = new File(savePath);
-            if (!path.isDirectory()) {
-                boolean mkdirPath = path.mkdirs();
-                if (!mkdirPath) {
-                    throw new IOException("创建目录失败，目录路径：" + savePath);
+            String[] stockList = stockName.split(",");
+            if (stockList.length > 0) {
+                apiController = new ApiController(new ConnectionHandler(), new InLogger(), new OutLogger());
+                apiController.connect(ibClientIp, port, (int) (System.currentTimeMillis() / 1000));
+                for (String stock : stockList) {
+                    //创建目录
+                    File path = new File(savePath);
+                    if (!path.isDirectory()) {
+                        boolean mkdirPath = path.mkdirs();
+                        if (!mkdirPath) {
+                            throw new IOException("create dir error,path：" + savePath);
+                        }
+                    }
+                    File outfile = new File(savePath + "/" + stock + ".csv");
+                    if (outfile.exists()) {
+                        outfile.delete();
+                    }
+                    stockBarMap.clear();
+                    long endTimeStamp = DATE_FMT.parse(endTimeStr).getTime();
+                    long beginTimeStamp = DATE_FMT.parse(beginTimeStr).getTime();
+                    fileWriter = new FileWriter(outfile);
+                    while (beginTimeStamp < endTimeStamp) {
+                        getHistoricalData(stock, beginTimeStamp);
+                        beginTimeStamp += step;
+                        Thread.sleep(sleepTime);
+                    }
+                    //输出到文件中
+                    for (Map.Entry<String, String> entry : stockBarMap.entrySet()) {
+                        fileWriter.write(entry.getValue());
+                    }
+                    fileWriter.flush();
                 }
+            } else {
+                System.out.println("error stock list is empty");
             }
-            File outfile = new File(savePath + "/" + stockName + ".csv");
-            System.out.println(END_DATE_FMT.format(new Date(System.currentTimeMillis() - 24 * 3600 * 1000)));
-            apiController = new ApiController(new ConnectionHandler(), new InLogger(), new OutLogger());
-            apiController.connect(clientIp, port, 1);
-            fileOutputStream = new FileOutputStream(outfile);
-            getHistoricalByDay(stockName, 360, fileOutputStream);
+        } catch (ParseException pe) {
+            System.out.println("run exception msg=" + pe.getMessage());
         } catch (Exception e) {
-            System.out.println("run exception msg="+e.getMessage());
+            e.printStackTrace();
         } finally {
-            if (fileOutputStream != null) {
+            if (fileWriter != null) {
                 try {
-                    fileOutputStream.close();
+                    fileWriter.close();
                 } catch (Exception ioe) {
                     ioe.printStackTrace();
                 }
@@ -71,16 +104,14 @@ public class Main {
      */
     public static void initArguments(String[] args) throws ParseException {
         Options opts = new Options();
-        opts.addOption(Option.builder("s").longOpt("stock").hasArg(true).desc("需要查询的股票代码，如BABA").required(true).build());
-        opts.addOption(Option.builder("o").longOpt("output").hasArg(true).desc("文件输出目录").required(true).build());
-        opts.addOption(Option.builder("f").longOpt("filename").hasArg(true).desc("保存的文件名,默认为:股票名.csv").required(false).build());
-        opts.addOption(Option.builder("i").longOpt("host").hasArg(true).desc("IB客户端ip，默认为:127.0.0.1").required(false).build());
-        opts.addOption(Option.builder("p").longOpt("port").hasArg(true).desc("IB客户端端口号，默认为:7496").required(false).build());
-        opts.addOption(Option.builder("n").longOpt("num").hasArg(true).desc("查询的单元数量,默认为:1").required(false).build());
-        opts.addOption(Option.builder("b").longOpt("btime").hasArg(true).desc("查询开始时间").required(true).build());
-        opts.addOption(Option.builder("e").longOpt("etime").hasArg(true).desc("查询结束时间").required(true).build());
-        opts.addOption(Option.builder("w").longOpt("wait").hasArg(true).desc("查询请求间隔时间，默认为15秒").required(false).build());
-        opts.addOption(Option.builder("u").longOpt("unit").hasArg(true).desc("查询单元，默认为天").required(false).build());
+        opts.addOption(Option.builder("s").longOpt("stock").hasArg(true).desc("stock list,example:BABA").required(true).build());
+        opts.addOption(Option.builder("o").longOpt("output").hasArg(true).desc("output file path").required(true).build());
+        opts.addOption(Option.builder("i").longOpt("host").hasArg(true).desc("IB client host,default:127.0.0.1").required(false).build());
+        opts.addOption(Option.builder("p").longOpt("port").hasArg(true).desc("IB client port,default:7496").required(false).build());
+        opts.addOption(Option.builder("b").longOpt("btime").hasArg(true).desc("request begin time").required(true).build());
+        opts.addOption(Option.builder("e").longOpt("etime").hasArg(true).desc("request end time,example:'20150105 23:59:59'").required(true).build());
+        opts.addOption(Option.builder("w").longOpt("wait").hasArg(true).desc("request sleep time by second,default:15").required(false).build());
+        opts.addOption(Option.builder("u").longOpt("unit").hasArg(true).desc("request bar size,only accept 1s,5s,10s,15s,30s,1m,2m,3m,5m,10m,15m,20m,30m,1h,4h,1d,1w").required(false).build());
         String formatstr = "java -jar ibstock.jar [-s/--stock] [-o/--output] [-b/--btime] [-e/--etime]";
 
         HelpFormatter formatter = new HelpFormatter();
@@ -89,10 +120,17 @@ public class Main {
             // 处理Options和参数
             CommandLine commandLine = parser.parse(opts, args, true);
             if (commandLine.hasOption("h")) {
-                formatter.printHelp("参数列表", opts);
+                formatter.printHelp("argument list:", opts);
             } else {
                 stockName = commandLine.getOptionValue("s");
                 savePath = commandLine.getOptionValue("o");
+                ibClientIp = commandLine.getOptionValue("i", "127.0.0.1");
+                port = Integer.valueOf(commandLine.getOptionValue("p", "7496"));
+                beginTimeStr = commandLine.getOptionValue("b");
+                endTimeStr = commandLine.getOptionValue("e");
+                sleepTime = Integer.valueOf(commandLine.getOptionValue("w", "15")) * 1000;
+                String unit = commandLine.getOptionValue("u", "1m");
+                parseStockUnit(unit);
             }
         } catch (ParseException e) {
             // 如果发生异常，则打印出帮助信息
@@ -102,22 +140,91 @@ public class Main {
     }
 
     /***
-     * 读取最近多少天的股票数据
+     * 根据当请请求单元，计算请求时间间隔和间距
      *
-     * @param symbol
-     * @param day
+     * @param unit
      */
-    public static void getHistoricalByDay(final String symbol, long day, FileOutputStream outputStream) {
-        long endTime = System.currentTimeMillis();
-        long startTime = endTime - day * 24 * 3600 * 1000;
-        try {
-            while (startTime < endTime) {
-                getHistoricalData(symbol, startTime, outputStream);
-                startTime += 24 * 3600 * 1000;
-                Thread.sleep(15 * 1000);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+    public static void parseStockUnit(String unit) {
+        switch (unit) {
+            case "1s":
+                //请求20分钟的数据，每次1200个K线
+                duration = 20 * 60;
+                step = duration * 1000;
+                durationUnit = Types.DurationUnit.SECOND;
+                barSize = Types.BarSize._1_secs;
+                break;
+            case "5s":
+                //请求2个小时的数据，每次1440个K线
+                duration = 2 * 60 * 60;
+                step = duration * 1000;
+                durationUnit = Types.DurationUnit.SECOND;
+                barSize = Types.BarSize._5_secs;
+                break;
+            case "10s":
+                //请求3个小时的数据，每次1080个K线
+                duration = 3 * 60 * 60;
+                step = duration * 1000;
+                durationUnit = Types.DurationUnit.SECOND;
+                barSize = Types.BarSize._10_secs;
+                break;
+            case "15s":
+                //请求5个小时的数据，每次1200个K线
+                duration = 5 * 60 * 60;
+                step = duration * 1000;
+                durationUnit = Types.DurationUnit.SECOND;
+                barSize = Types.BarSize._15_secs;
+                break;
+            case "30s":
+                //请求12个小时的数据，每次1440个K线
+                duration = 12 * 60 * 60;
+                step = duration * 1000;
+                durationUnit = Types.DurationUnit.SECOND;
+                barSize = Types.BarSize._30_secs;
+                break;
+            case "1m":
+                //请求1天数据，每次1440个K线
+                duration = 1;
+                step = duration * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.DAY;
+                barSize = Types.BarSize._1_min;
+                break;
+            case "2m":
+                //请求2天数据，每次1440个K线
+                duration = 2;
+                step = duration * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.DAY;
+                barSize = Types.BarSize._2_mins;
+                break;
+            case "3m":
+                barSize = Types.BarSize._3_mins;
+                break;
+            case "5m":
+                barSize = Types.BarSize._5_mins;
+                break;
+            case "10m":
+                barSize = Types.BarSize._10_mins;
+                break;
+            case "15m":
+                barSize = Types.BarSize._15_mins;
+                break;
+            case "20m":
+                barSize = Types.BarSize._20_mins;
+                break;
+            case "30m":
+                barSize = Types.BarSize._30_mins;
+                break;
+            case "1h":
+                barSize = Types.BarSize._1_hour;
+                break;
+            case "4h":
+                barSize = Types.BarSize._4_hours;
+                break;
+            case "1d":
+                barSize = Types.BarSize._1_day;
+                break;
+            case "1w":
+                barSize = Types.BarSize._1_week;
+                break;
         }
     }
 
@@ -127,11 +234,20 @@ public class Main {
      * @param symbol  股票交易代码
      * @param endTime 结束时间
      */
-    public static void getHistoricalData(final String symbol, long endTime, final FileOutputStream outputStream) {
+    public static void getHistoricalData(final String symbol, long endTime) {
+        final String endDateTime = DATE_FMT.format(new Date(endTime));
+        StringBuilder request = new StringBuilder();
+        request.append("send request:symbol=" + symbol);
+        request.append(",endTime=" + endDateTime);
+        request.append(",duration=" + duration);
+        request.append(",durationUnit" + durationUnit.toString());
+        request.append(",barSize=" + barSize.toString());
+        System.out.println(request.toString());
+
         StkContract stkContract = new StkContract(symbol);
         NewContract newContract = new NewContract(stkContract);
-        final String endDateTime = END_DATE_FMT.format(new Date(endTime));
-        apiController.reqHistoricalData(newContract, endDateTime, 1, Types.DurationUnit.DAY, Types.BarSize._1_min, Types.WhatToShow.TRADES, false, new ApiController.IHistoricalDataHandler() {
+
+        apiController.reqHistoricalData(newContract, endDateTime, duration, durationUnit, barSize, Types.WhatToShow.TRADES, false, new ApiController.IHistoricalDataHandler() {
             @Override
             public void historicalData(Bar bar, boolean hasGaps) {
                 StringBuilder sb = new StringBuilder();
@@ -143,17 +259,13 @@ public class Main {
                 sb.append("," + bar.volume());
                 sb.append("," + bar.count());
                 sb.append("," + bar.wap());
-                sb.append("\r");
-                try {
-                    outputStream.write(sb.toString().getBytes());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                sb.append("\n");
+                stockBarMap.put(bar.formattedTime(), sb.toString());
             }
 
             @Override
             public void historicalDataEnd() {
-                System.out.println("historicalDataEnd endDate=" + endDateTime);
+                System.out.println("handler historicalDataEnd endDate=" + endDateTime + ",stock bar length=" + stockBarMap.size());
             }
         });
 
