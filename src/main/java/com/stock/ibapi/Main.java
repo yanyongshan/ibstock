@@ -9,6 +9,7 @@ import org.apache.commons.cli.*;
 
 import java.io.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,6 +41,7 @@ public class Main {
     public static Types.BarSize barSize;
     //
     public static HashMap<String, String> stockBarMap = new HashMap<>();
+    public static ArrayList<String> stockBarList = new ArrayList<>();
 
     public static void main(String[] args) {
         FileWriter fileWriter = null;
@@ -63,6 +65,7 @@ public class Main {
                         outfile.delete();
                     }
                     stockBarMap.clear();
+                    stockBarList.clear();
                     long endTimeStamp = DATE_FMT.parse(endTimeStr).getTime();
                     long beginTimeStamp = DATE_FMT.parse(beginTimeStr).getTime();
                     fileWriter = new FileWriter(outfile);
@@ -72,10 +75,12 @@ public class Main {
                         Thread.sleep(sleepTime);
                     }
                     //输出到文件中
-                    for (Map.Entry<String, String> entry : stockBarMap.entrySet()) {
-                        fileWriter.write(entry.getValue());
+                    for (String barStr : stockBarList) {
+                        fileWriter.write(barStr);
                     }
                     fileWriter.flush();
+                    stockBarMap.clear();
+                    stockBarList.clear();
                 }
             } else {
                 System.out.println("error stock list is empty");
@@ -111,7 +116,7 @@ public class Main {
         opts.addOption(Option.builder("b").longOpt("btime").hasArg(true).desc("request begin time").required(true).build());
         opts.addOption(Option.builder("e").longOpt("etime").hasArg(true).desc("request end time,example:'20150105 23:59:59'").required(true).build());
         opts.addOption(Option.builder("w").longOpt("wait").hasArg(true).desc("request sleep time by second,default:15").required(false).build());
-        opts.addOption(Option.builder("u").longOpt("unit").hasArg(true).desc("request bar size,only accept 1s,5s,10s,15s,30s,1m,2m,3m,5m,10m,15m,20m,30m,1h,4h,1d,1w").required(false).build());
+        opts.addOption(Option.builder("u").longOpt("unit").hasArg(true).desc("request bar size,only accept 1m,2m,3m,5m,10m,15m,20m,30m,1h,4h,1d,1w").required(false).build());
         String formatstr = "java -jar ibstock.jar [-s/--stock] [-o/--output] [-b/--btime] [-e/--etime]";
 
         HelpFormatter formatter = new HelpFormatter();
@@ -146,43 +151,8 @@ public class Main {
      */
     public static void parseStockUnit(String unit) {
         switch (unit) {
-            case "1s":
-                //请求20分钟的数据，每次1200个K线
-                duration = 20 * 60;
-                step = duration * 1000;
-                durationUnit = Types.DurationUnit.SECOND;
-                barSize = Types.BarSize._1_secs;
-                break;
-            case "5s":
-                //请求2个小时的数据，每次1440个K线
-                duration = 2 * 60 * 60;
-                step = duration * 1000;
-                durationUnit = Types.DurationUnit.SECOND;
-                barSize = Types.BarSize._5_secs;
-                break;
-            case "10s":
-                //请求3个小时的数据，每次1080个K线
-                duration = 3 * 60 * 60;
-                step = duration * 1000;
-                durationUnit = Types.DurationUnit.SECOND;
-                barSize = Types.BarSize._10_secs;
-                break;
-            case "15s":
-                //请求5个小时的数据，每次1200个K线
-                duration = 5 * 60 * 60;
-                step = duration * 1000;
-                durationUnit = Types.DurationUnit.SECOND;
-                barSize = Types.BarSize._15_secs;
-                break;
-            case "30s":
-                //请求12个小时的数据，每次1440个K线
-                duration = 12 * 60 * 60;
-                step = duration * 1000;
-                durationUnit = Types.DurationUnit.SECOND;
-                barSize = Types.BarSize._30_secs;
-                break;
             case "1m":
-                //请求1天数据，每次1440个K线
+                //每次请求1天数据，最多每次1440个K线
                 duration = 1;
                 step = duration * 24 * 60 * 60 * 1000;
                 durationUnit = Types.DurationUnit.DAY;
@@ -196,33 +166,73 @@ public class Main {
                 barSize = Types.BarSize._2_mins;
                 break;
             case "3m":
+                //每次请求3天数据，最多每次1440个K线
+                duration = 3;
+                step = duration * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.DAY;
                 barSize = Types.BarSize._3_mins;
                 break;
             case "5m":
+                //每次请求5天数据，最多每次1440个K线
+                duration = 5;
+                step = duration * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.DAY;
                 barSize = Types.BarSize._5_mins;
                 break;
             case "10m":
+                //每次请求10天数据，最多每次1440个K线
+                duration = 10;
+                step = duration * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.DAY;
                 barSize = Types.BarSize._10_mins;
                 break;
             case "15m":
+                //每次请求15天数据，最多每次1440个K线
+                duration = 15;
+                step = duration * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.DAY;
                 barSize = Types.BarSize._15_mins;
                 break;
             case "20m":
+                //每次请求20天数据，最多每次1440个K线
+                duration = 20;
+                step = duration * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.DAY;
                 barSize = Types.BarSize._20_mins;
                 break;
             case "30m":
+                //每次请求30天数据，最多每次1440个K线
+                duration = 30;
+                step = duration * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.DAY;
                 barSize = Types.BarSize._30_mins;
                 break;
             case "1h":
+                //每次请求60天数据，最多每次1440个K线
+                duration = 60;
+                step = duration * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.DAY;
                 barSize = Types.BarSize._1_hour;
                 break;
             case "4h":
+                //每次请求240天数据，最多每次1440个K线
+                duration = 4 * 60;
+                step = duration * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.DAY;
                 barSize = Types.BarSize._4_hours;
                 break;
             case "1d":
+                //每次请求365天数据，最多每次1440个K线
+                duration = 365;
+                step = duration * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.DAY;
                 barSize = Types.BarSize._1_day;
                 break;
             case "1w":
+                //每次请求500周数据，最多每次1440个K线
+                duration = 500;
+                step = duration * 7 * 24 * 60 * 60 * 1000;
+                durationUnit = Types.DurationUnit.WEEK;
                 barSize = Types.BarSize._1_week;
                 break;
         }
@@ -251,7 +261,8 @@ public class Main {
             @Override
             public void historicalData(Bar bar, boolean hasGaps) {
                 StringBuilder sb = new StringBuilder();
-                sb.append(bar.formattedTime());
+                String barTime = bar.formattedTime();
+                sb.append(barTime);
                 sb.append("," + bar.high());
                 sb.append("," + bar.low());
                 sb.append("," + bar.open());
@@ -260,7 +271,11 @@ public class Main {
                 sb.append("," + bar.count());
                 sb.append("," + bar.wap());
                 sb.append("\n");
-                stockBarMap.put(bar.formattedTime(), sb.toString());
+                if (!stockBarMap.containsKey(barTime)) {
+                    stockBarList.add(sb.toString());
+                    stockBarMap.put(bar.formattedTime(), "");
+                }
+
             }
 
             @Override
